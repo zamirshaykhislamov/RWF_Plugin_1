@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<RevitAddIns>
+  <AddIn Type="Command">
+    <Name>rwf_plugin_1</Name>
+    <Assembly>rwf_plugin_1.dll</Assembly>
+    <AddInId>66CF0787-CBF5-4B1F-8747-CA2BF65408DF</AddInId>
+    <FullClassName>RWF_Plugin_1.Command</FullClassName>
+    <Text>CreateWindowFamily</Text>
+    <Description>Family Builder</Description>
+    <VendorId>io.aplo.rfa</VendorId>
+    <VendorDescription>Aplo, Revit Content</VendorDescription>
+    <VisibilityMode>NotVisibleWhenNoActiveDocument</VisibilityMode>
+  </AddIn>
+</RevitAddIns>
