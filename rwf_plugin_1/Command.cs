@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -9,8 +10,9 @@ using Autodesk.Revit.Attributes;
 using Autodesk.Revit.UI.Selection;
 using Autodesk.Revit.UI;
 using Autodesk.Revit.ApplicationServices;
+using Newtonsoft.Json;
 
-namespace RWF_Plugin_1
+namespace rwf_plugin_1
 {
     [Transaction(TransactionMode.Manual)]
     public class Command : IExternalCommand
@@ -26,12 +28,21 @@ namespace RWF_Plugin_1
         ReferencePlane centerPlane;
         ReferencePlane topPlane;
         ReferencePlane bottomPlane;
+        ReferencePlane panelPlane;
+        ReferencePlane frameExtPlane;
         ReferencePlane rightPlane;
         ReferencePlane leftPlane;
 
         Wall wall;
         Face exteriorWallFace;
         Face interiorWallFace;
+        Face exteriorExtrusionFace;
+        Face interiorExtrusionFace;
+        Face leftExtrusionFace;
+        //Face rightExtrusionFace;
+        //Face topExtrusionFace;
+        //Face bottomExtrusionFace;
+
 
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
@@ -60,7 +71,7 @@ namespace RWF_Plugin_1
                 {
                     transaction.Start();
 
-                    CreateWindow();
+                    CreateFrame();
 
                     transaction.Commit();
                 }
@@ -91,7 +102,10 @@ namespace RWF_Plugin_1
                     leftPlane = plane;
                 if (plane.Name.Equals("Right"))
                     rightPlane = plane;
-
+                if (plane.Name.Equals("RefWinPanel"))
+                    panelPlane = plane;
+                if (plane.Name.Equals("RefExteriorFrame"))
+                    frameExtPlane = plane;
             }
 
             // Get views
@@ -117,129 +131,140 @@ namespace RWF_Plugin_1
                 return false;
             }
 
+
             // Get wall exterior face
-            exteriorWallFace = GeoHelper.GetWallFace(wall, rightView, WallSide.Exterior);
+            exteriorWallFace = GeoHelper.GetWallFace(wall, rightView, ObjectSide.Exterior);
 
             // Get wall interior face
-            interiorWallFace = GeoHelper.GetWallFace(wall, rightView, WallSide.Interior);
+            interiorWallFace = GeoHelper.GetWallFace(wall, rightView, ObjectSide.Interior);
 
-            Debug.WriteLine("\n=======\n");
-            Debug.WriteLine(String.Format("centerPlane: {0}", centerPlane));
-            Debug.WriteLine(String.Format("topPlane: {0}", topPlane));
-            Debug.WriteLine(String.Format("bottomPlane: {0}", bottomPlane));
-            Debug.WriteLine(String.Format("wall: {0}", wall));
-            Debug.WriteLine(String.Format("exteriorWallFace: {0}", exteriorWallFace));
-            Debug.WriteLine(String.Format("interiorWallFace: {0}", interiorWallFace));
-            Debug.WriteLine(String.Format("rightView: {0}", rightView));
-            Debug.WriteLine(String.Format("leftView: {0}", leftView));
-     
+
             return true;
-
         }
 
-        private void CreateWindow()
+        private void CreateFrame()
         {
+            /*
+            
+            var windowJsonData = WindowJsonData.Parse("C:\\Users\\Zamir\\Desktop\\exportTest.json");
 
-        }
+            familyManager.Set(familyManager.get_Parameter(BuiltInParameter.WINDOW_HEIGHT), windowJsonData.Height);
+            familyManager.Set(familyManager.get_Parameter(BuiltInParameter.WINDOW_WIDTH), windowJsonData.Width);
+            familyManager.Set(familyManager.get_Parameter("Default Sill Height"), windowJsonData.SillHeight);
+            */
+
+            FamilyManager familyManager = doc.FamilyManager;
+
+            var refPlaneCreator = new CreateRefPlane(app, doc);
+            var dimensionCreator = new CreateDimension(app, doc);
+            var extrusionCreator = new CreateExtrusion(app, doc);
+            var alignmentCreator = new CreatAlignment(app, doc);
+
+            // Store the values
+            var height = Utility.MetricToImperial(1500);
+            var width = Utility.MetricToImperial(1000);
+            var sillHeight = Utility.MetricToImperial(800);
+
+            Debug.WriteLine("==> height {0}", height);
+            throw new System.ArgumentException("==> some error");
+
+            var frameOffset = Utility.MetricToImperial(100);
+            var frameDepth = Utility.MetricToImperial(50);
+            var frameWidth = Utility.MetricToImperial(70);
+            var frameBottomInset = Utility.MetricToImperial(15);
+            var frameTopInset = Utility.MetricToImperial(15);
+            var frameLeftInset = Utility.MetricToImperial(15);
+            var frameRightInset = Utility.MetricToImperial(15);
+            var frameSpacing = Utility.MetricToImperial(70);
+
+            var panelProfileWidth = Utility.MetricToImperial(60);
+            var panelProfileDepth = Utility.MetricToImperial(50);
+            var panelPosition = Utility.MetricToImperial(15);
+            var panelOverLap = Utility.MetricToImperial(10);
+
+            var glassThicknes = Utility.MetricToImperial(5);
+            var glassPosition = Utility.MetricToImperial(20);
 
 
-        public static class Utility
-        {
-            public static List<T> GetElements<T>(Application app, Document doc) where T : Element
-            {
-                var elements = new List<T>();
+            // RefrenecePlanes
+            var frameExtPlane = refPlaneCreator.Create(centerPlane, rightView, new XYZ(0, wall.Width / 2 - frameOffset, 0), new XYZ(0, 0, 1), "FrameExterior");
+            var frameIntPlane = refPlaneCreator.Create(frameExtPlane, rightView, new XYZ(0, - frameDepth, 0), new XYZ(0, 0, 1), "FrameInterior");
+            var frameOuterTop = refPlaneCreator.Create(topPlane, exteriorView, new XYZ(0, 0, -frameTopInset), new XYZ(0, -1, 0), "FrameOuterTop");
+            var frameOuterBottom = refPlaneCreator.Create(bottomPlane, exteriorView, new XYZ(0, 0, frameBottomInset), new XYZ(0, -1, 0), "FrameOuterBottom");
+            var frameOuterRight = refPlaneCreator.Create(rightPlane, exteriorView, new XYZ(-frameRightInset, 0, 0), new XYZ(0, 0, 1), "FrameOuterRight");
+            var frameOuterLeft = refPlaneCreator.Create(leftPlane, exteriorView, new XYZ(frameLeftInset, 0, 0), new XYZ(0, 0, 1), "FrameOuterLeft");
+            doc.Regenerate();
 
-                var collector = new FilteredElementCollector(doc);
-                collector.OfClass(typeof(T));
-                FilteredElementIterator iterator = collector.GetElementIterator();
-                iterator.Reset();
-                while (iterator.MoveNext())
-                {
-                    var element = iterator.Current as T;
-                    if (element != null)
-                    {
-                        elements.Add(element);
-                    }
-                }
-                return elements;
-            }
+            // Dimension
+            var windowOffsetDimension = dimensionCreator.AddDimension(rightView, exteriorWallFace, frameExtPlane);
+            var frameDepthDim = dimensionCreator.AddDimension(rightView, frameExtPlane, frameIntPlane);
+            //var frameDepthPara = familyManager.AddParameter("Frame Depth", BuiltInParameterGroup.INVALID, ParameterType.Length, true);
+            //familyManager.Set(frameDepthPara, frameDepth);
+            //frameDepthDim.FamilyLabel = frameDepthPara;
+            //familyManager.SetParameterLocked(frameDepthPara, true);
 
-            public static double MetricToImperial(double value)
-            {
-                return value / 304.8;
-            }
+            var frameTopInsetDim = dimensionCreator.AddDimension(exteriorView, topPlane, frameOuterTop);
+            var frameBottomDim = dimensionCreator.AddDimension(exteriorView, bottomPlane, frameOuterBottom);
+            var frameLeftDim = dimensionCreator.AddDimension(exteriorView, leftPlane, frameOuterLeft);
+            var frameRightDim = dimensionCreator.AddDimension(exteriorView, rightPlane, frameOuterRight);
+            doc.Regenerate();
 
-            public static double ImperialToMetric(double value)
-            {
-                return value * 304.8;
-            }
+            //Extrusions
+            // external side of frame
+            CurveArray frameCurveArr1 = extrusionCreator.CreateRectangle(
+                width / 2 - frameLeftInset,
+                -(width / 2 - frameLeftInset),
+                sillHeight + height - frameTopInset,
+                sillHeight + frameBottomInset,
+                0);
+            // bottom
+            CurveArray frameCurveArr2 = extrusionCreator.CreateRectangle(
+                width / 2 - frameWidth - frameLeftInset,
+                -(width / 2 - frameWidth - frameRightInset),
+                sillHeight + frameBottomInset + frameWidth + Utility.MetricToImperial(900) - frameSpacing,
+                sillHeight + frameBottomInset + frameWidth,
+                0);
+            // top left
+            CurveArray frameCurveArr3 = extrusionCreator.CreateRectangle(
+                width / 2 - frameWidth - frameLeftInset,
+                frameSpacing / 2,
+                sillHeight + height - frameWidth - frameTopInset,
+                sillHeight + frameBottomInset + frameWidth + Utility.MetricToImperial(900),
+                0);
+            // top right
+            CurveArray frameCurveArr4 = extrusionCreator.CreateRectangle(-(frameSpacing / 2),
+                -(width / 2 - frameWidth - frameRightInset),
+                sillHeight + height - frameWidth - frameTopInset,
+                sillHeight + frameBottomInset + frameWidth + Utility.MetricToImperial(900),
+                0);
 
-        }
+            CurveArrArray frameCurveArrArray = new CurveArrArray();
+            frameCurveArrArray.Append(frameCurveArr1);
+            frameCurveArrArray.Append(frameCurveArr2);
+            frameCurveArrArray.Append(frameCurveArr3);
+            frameCurveArrArray.Append(frameCurveArr4);
+            var frameExt = extrusionCreator.NewExtrusion(frameCurveArrArray, frameExtPlane, frameDepth, 0);
+            frameExt.SetVisibility(Utility.CreateVisibility());
+            frameExt.Subcategory = doc.Settings.Categories.get_Item(BuiltInCategory.OST_WindowsFrameMullionProjection);
+            doc.Regenerate();
 
-        public static class GeoHelper
-        {
-            // store the const precision
-            private const double Precision = 0.0001;
 
-            public static Face GetWallFace(Wall wall, View view, WallSide side)
-            {
-                Face face = null;
-                FaceArray faces = new FaceArray();
+            //Constrain
+            //var frameFaceExt = GeoHelper.GetExtrusionFace(frameExt, rightView, true);
+            exteriorExtrusionFace = GeoHelper.GetExtrusionFace(frameExt, rightView, ObjectSide.Exterior);
+            alignmentCreator.AddAlignment(rightView, exteriorExtrusionFace, frameExtPlane);
+            doc.Regenerate();
 
-                Options options = new Options();
-                options.ComputeReferences = true;
-                options.View = view;
+            //var frameFaceInt = GeoHelper.GetExtrusionFace(frameExt, rightView, false);
+            interiorExtrusionFace = GeoHelper.GetExtrusionFace(frameExt, rightView, ObjectSide.Interior);
+            alignmentCreator.AddAlignment(rightView, interiorExtrusionFace, frameIntPlane);
+            doc.Regenerate();
 
-                if (wall != null)
-                {
-                    IEnumerator<GeometryObject> objects = wall.get_Geometry(options).GetEnumerator();
-                    while (objects.MoveNext())
-                    {
-                        var currentObject = objects.Current;
-                        var solid = currentObject as Solid;
-                        if (solid != null)
-                        {
-                            faces = solid.Faces;
-                        }
-                    }
+            //leftExtrusionFace = GeoHelper.GetExtrusionFace(frameExt, rightView, ObjectSide.Left);
+            //alignmentCreator.AddAlignment(exteriorView, leftExtrusionFace, frameOuterLeft);
+            
+            //doc.Regenerate();
 
-                    face = GetFace(faces, side);
-                }
-
-                return face;
-            }
-
-            public static Face GetFace(FaceArray faces, WallSide side)
-            {
-                double elevation = 0;
-                double tempElevation = 0;
-                Mesh mesh;
-                Face face = null;
-
-                foreach (Face _face in faces)
-                {
-                    tempElevation = 0;
-                    mesh = _face.Triangulate();
-                    foreach (XYZ xyz in mesh.Vertices)
-                    {
-                        tempElevation += xyz.Y;
-                    }
-                    tempElevation /= mesh.Vertices.Count;
-
-                    if (side == WallSide.Exterior && (elevation < tempElevation || null == face))
-                    {
-                        face = _face;
-                        elevation = tempElevation;
-                    }
-                    else if (side == WallSide.Interior && (elevation > tempElevation || null == face))
-                    {
-                        face = _face;
-                        elevation = tempElevation;
-                    }
-                }
-
-                return face;
-            }
         }
 
     }
