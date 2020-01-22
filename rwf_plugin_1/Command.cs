@@ -187,13 +187,13 @@ namespace rwf_plugin_1
 
 
             // RefrenecePlanes
-            var frameExtPlane = refPlaneCreator.Create(centerPlane, rightView, new XYZ(0, wall.Width / 2 - frameOffset, 0), new XYZ(0, 0, 1), "FrameExterior");
-            var frameIntPlane = refPlaneCreator.Create(frameExtPlane, rightView, new XYZ(0, - frameDepth, 0), new XYZ(0, 0, 1), "FrameInterior");
-            var frameOuterTop = refPlaneCreator.Create(topPlane, exteriorView, new XYZ(0, 0, -frameTopInset), new XYZ(0, -1, 0), "FrameOuterTop");
-            var frameOuterBottom = refPlaneCreator.Create(bottomPlane, exteriorView, new XYZ(0, 0, frameBottomInset), new XYZ(0, -1, 0), "FrameOuterBottom");
-            var frameOuterRight = refPlaneCreator.Create(rightPlane, exteriorView, new XYZ(-frameRightInset, 0, 0), new XYZ(0, 0, 1), "FrameOuterRight");
-            var frameOuterLeft = refPlaneCreator.Create(leftPlane, exteriorView, new XYZ(frameLeftInset, 0, 0), new XYZ(0, 0, 1), "FrameOuterLeft");
-            doc.Regenerate();
+            //var frameExtPlane = refPlaneCreator.Create(centerPlane, rightView, new XYZ(0, wall.Width / 2 - frameOffset, 0), new XYZ(0, 0, 1), "FrameExterior");
+            //var frameIntPlane = refPlaneCreator.Create(frameExtPlane, rightView, new XYZ(0, - frameDepth, 0), new XYZ(0, 0, 1), "FrameInterior");
+            //var frameOuterTop = refPlaneCreator.Create(topPlane, exteriorView, new XYZ(0, 0, -frameTopInset), new XYZ(0, -1, 0), "FrameOuterTop");
+            //var frameOuterBottom = refPlaneCreator.Create(bottomPlane, exteriorView, new XYZ(0, 0, frameBottomInset), new XYZ(0, -1, 0), "FrameOuterBottom");
+            //var frameOuterRight = refPlaneCreator.Create(rightPlane, exteriorView, new XYZ(-frameRightInset, 0, 0), new XYZ(0, 0, 1), "FrameOuterRight");
+            //var frameOuterLeft = refPlaneCreator.Create(leftPlane, exteriorView, new XYZ(frameLeftInset, 0, 0), new XYZ(0, 0, 1), "FrameOuterLeft");
+            //doc.Regenerate();
 
             // Dimension
             var windowOffsetDimension = dimensionCreator.AddDimension(rightView, exteriorWallFace, frameExtPlane);
